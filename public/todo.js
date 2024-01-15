@@ -4,55 +4,103 @@ const addTodo = document.getElementById("addTask");
 const todos = document.getElementById("tasks");
 const clearAllItems = document.getElementById("clearAll");
 
-//load event listeners
+// load event listeners
 loadEventListeners();
+
 function loadEventListeners() {
-  //submiting task
-  form.addEventListener("submit", onsubmit);
-  // delet a task
+  // submitting task
+  form.addEventListener("submit", onSubmit);
+  // delete a task
   todos.addEventListener("click", remove);
-  // search or folter for todo
+  // search or filter for todo
   searchTask.addEventListener("keyup", searchTodo);
-  //clear all
+  // clear all
   clearAllItems.addEventListener("click", clearAll);
 }
-function onsubmit(e) {
-  e.preventDefault();
-  if (addTodo.value === "") {
-    alert("Add a task!");
-    return false;
+
+// Function to fetch and display todos
+async function fetchAndDisplayTodos() {
+  const response = await fetch("/api/v1/todos");
+  if (response.ok) {
+    const todosData = await response.json();
+    console.log(todosData);
+    // Clear existing todos on the DOM
+    todos.innerHTML = "";
+
+    // Iterate through fetched todos and add them to the DOM
+    todosData.forEach((todo) => {
+      const newLi = document.createElement("li");
+      newLi.appendChild(document.createTextNode(todo.todo));
+
+      // Create delete icon
+      const icon = document.createElement("p");
+      icon.innerText = "X";
+      icon.className = "x";
+      newLi.appendChild(icon);
+
+      // Append the list item to the ul
+      todos.appendChild(newLi);
+    });
+  } else {
+    console.log("Failed to fetch todos");
   }
-  //creating new li
-  let newLi = document.createElement("li");
-  //creating a textnode from the input and append to li
-  newLi.appendChild(document.createTextNode(addTodo.value));
-  // creating the delet icon
-  let icon = document.createElement("p");
-  //inserting the class to the icon
-  icon.innerText = "X";
-  icon.className = "x";
-  //appending the icon to the li
-  newLi.appendChild(icon);
-  //appending the li to the ul
-  todos.appendChild(newLi);
-  // clearing the field after entering a task
-  addTodo.value = "";
-  // after adding to DOM, add to LS
-  storeItemInLocalStorage(addTodo.value);
 }
 
-//deleting task function
-function remove(e) {
+// Function to handle form submission
+async function onSubmit(e) {
+  e.preventDefault();
+  if (addTodo.value === "") {
+    console.log("Add a task!");
+    return false;
+  }
+
+  // Send a POST request to add the task
+  const response = await fetch("/api/v1/todos", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ todo: addTodo.value }),
+  });
+
+  if (response.ok) {
+    // Fetch and display todos after successful addition
+    await fetchAndDisplayTodos();
+
+    // Clear the field after entering a task
+    addTodo.value = "";
+  } else {
+    console.log("Failed to post");
+  }
+}
+
+// Fetch and display todos on page load
+window.addEventListener("load", fetchAndDisplayTodos);
+
+// Deleting task function
+async function remove(e) {
   e.preventDefault();
   if (e.target.classList.contains("x")) {
-    if (
-      confirm(`Are you sure to delete ${e.target.parentElement.textContent}?`) //confirmation befor deleting
-    ) {
-      e.target.parentElement.remove();
+    if (confirm(`Are you sure to delete ${e.target.parentElement.textContent}?`)) {
+      // Extract task text
+      const taskText = e.target.parentElement.textContent.trim();
+
+      // Send a DELETE request to remove the task
+      const response = await fetch(`/api/tasks/${encodeURIComponent(taskText)}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Remove the list item from the DOM
+        e.target.parentElement.remove();
+      } else {
+        alert("Failed to delete task");
+      }
     }
   }
 }
-//fiter or search function
+
+// Filter or search function
 function searchTodo(e) {
   e.preventDefault();
   let inputText = e.target.value.toLowerCase();
@@ -64,18 +112,8 @@ function searchTodo(e) {
       todoItem.style.display = "none";
     }
   });
-  // searchTask.value = "";
 }
-function storeItemInLocalStorage(task) {
-  let tasks;
-  if (localStorage.getItem(tasks) === null) {
-    tasks = [];
-  } else {
-    tasks = JSON.parse(localStorage.getItem(task));
-  }
-  tasks.push(task);
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-}
+
 function clearAll(e) {
   e.preventDefault();
   todos.innerHTML = "";

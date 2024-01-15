@@ -6,7 +6,8 @@ const getTodos =
 const createTodo =
   ("/",
   (req, res) => {
-    res.send("post todos");
+    const { todo } = req.body;
+    res.status(200).send("create todo");
   });
 const deleteTodo =
   ("/:id",
