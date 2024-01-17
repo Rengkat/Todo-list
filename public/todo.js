@@ -28,9 +28,11 @@ async function fetchAndDisplayTodos() {
     todos.innerHTML = "";
 
     // Iterate through fetched todos and add them to the DOM
-    todosData.forEach((todo) => {
+    todosData.todo.forEach((singleTodo) => {
       const newLi = document.createElement("li");
-      newLi.appendChild(document.createTextNode(todo.todo));
+      newLi.id = singleTodo._id;
+
+      newLi.appendChild(document.createTextNode(singleTodo.todo));
 
       // Create delete icon
       const icon = document.createElement("p");
@@ -60,7 +62,7 @@ async function onSubmit(e) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ todo: addTodo.value }),
+    body: JSON.stringify({ todo: addTodo.value, completed: false }),
   });
 
   if (response.ok) {
@@ -81,21 +83,20 @@ window.addEventListener("load", fetchAndDisplayTodos);
 async function remove(e) {
   e.preventDefault();
   if (e.target.classList.contains("x")) {
-    if (confirm(`Are you sure to delete ${e.target.parentElement.textContent}?`)) {
-      // Extract task text
-      const taskText = e.target.parentElement.textContent.trim();
+    const id = e.target.parentElement.id;
 
-      // Send a DELETE request to remove the task
-      const response = await fetch(`/api/tasks/${encodeURIComponent(taskText)}`, {
-        method: "DELETE",
-      });
+    // Extract task text
+    const taskText = e.target.parentElement.textContent.trim();
+    // Send a DELETE request to remove the task
+    const response = await fetch(`/api/v1/todos/${id}`, {
+      method: "DELETE",
+    });
 
-      if (response.ok) {
-        // Remove the list item from the DOM
-        e.target.parentElement.remove();
-      } else {
-        alert("Failed to delete task");
-      }
+    if (response.ok) {
+      // Remove the list item from the DOM
+      e.target.parentElement.remove();
+    } else {
+      console.log("Failed to delete task");
     }
   }
 }
@@ -114,7 +115,14 @@ function searchTodo(e) {
   });
 }
 
-function clearAll(e) {
+async function clearAll(e) {
   e.preventDefault();
-  todos.innerHTML = "";
+  try {
+    const res = await fetch("/api/v1/todos/all", {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      todos.innerHTML = "";
+    }
+  } catch (error) {}
 }
